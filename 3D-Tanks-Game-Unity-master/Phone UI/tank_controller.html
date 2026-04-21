@@ -694,7 +694,7 @@
 
         /* RIGHT PANEL */
         #right-panel {
-            flex: 0 0 78px;
+            flex: 0 0 90px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -702,16 +702,16 @@
         }
 
         .aux-btn {
-            width: 66px;
-            height: 62px;
-            border-radius: 8px;
+            width: 82px;
+            height: 72px;
+            border-radius: 10px;
             background: linear-gradient(135deg,#2c312a,#1a1c1a);
             border: 1px solid var(--steel);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 3px;
+            gap: 4px;
             cursor: pointer;
             touch-action: none;
             transition: all 0.1s;
@@ -725,11 +725,11 @@
             }
 
         .aux-icon {
-            font-size: 20px;
+            font-size: 26px;
         }
 
         .aux-lbl {
-            font-size: 7px;
+            font-size: 8px;
             letter-spacing: 2px;
             color: var(--text-dim);
             text-transform: uppercase;
@@ -742,51 +742,115 @@
         .aux-btn.tog {
             background: linear-gradient(135deg,#003040,#001520);
             border-color: var(--rocket);
-            box-shadow: 0 0 10px rgba(0,200,255,0.2);
+            box-shadow: 0 0 14px rgba(0,200,255,0.3);
         }
 
             .aux-btn.tog .aux-lbl {
                 color: var(--rocket-glow);
             }
 
-        #ammo-display {
-            width: 66px;
+        /* BOOST BUTTON — big */
+        #boost-btn {
+            width: 82px;
+            height: 72px;
+            border-radius: 10px;
+            background: linear-gradient(135deg,#1a1000,#0a0800);
+            border: 2px solid #554400;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+            touch-action: none;
+            position: relative;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+            transition: all 0.08s;
+        }
+
+            #boost-btn .rivet {
+                width: 5px;
+                height: 5px;
+            }
+
+        #boost-icon {
+            font-size: 26px;
+        }
+
+        #boost-lbl {
+            font-size: 8px;
+            letter-spacing: 2px;
+            color: #665500;
+            text-transform: uppercase;
+        }
+
+        #boost-btn.active {
+            background: linear-gradient(135deg,#3a2800,#1a1000);
+            border-color: var(--amber);
+            box-shadow: 0 0 20px rgba(212,160,23,0.6),inset 0 1px 0 rgba(255,255,255,0.04);
+        }
+
+            #boost-btn.active #boost-lbl {
+                color: var(--amber);
+            }
+
+        #boost-btn.empty {
+            border-color: #333;
+            opacity: 0.4;
+        }
+
+        /* FUEL BAR */
+        #fuel-display {
+            width: 82px;
             background: #0a0c09;
             border: 1px solid var(--steel);
             border-radius: 6px;
-            padding: 6px;
+            padding: 6px 8px;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 4px;
         }
 
-        #ammo-lbl {
+        #fuel-lbl {
             font-size: 7px;
             letter-spacing: 2px;
             color: var(--text-dim);
             text-transform: uppercase;
         }
 
-        #ammo-pips {
-            display: grid;
-            grid-template-columns: repeat(3,1fr);
-            gap: 3px;
+        #fuel-bar-bg {
             width: 100%;
+            height: 10px;
+            background: #111;
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid #222;
         }
 
-        .ap {
-            height: 8px;
-            border-radius: 2px;
-            background: var(--rust);
-            box-shadow: 0 0 4px rgba(200,117,10,0.4);
-            transition: all 0.15s;
+        #fuel-bar-fill {
+            height: 100%;
+            width: 100%;
+            border-radius: 5px;
+            background: linear-gradient(90deg,var(--amber),var(--rust-glow));
+            transition: width 0.15s,background 0.3s;
         }
 
-            .ap.spent {
-                background: #1a1c1a;
-                border: 1px solid #333;
-                box-shadow: none;
+        #fuel-pct {
+            font-family: 'Orbitron',sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--amber);
+            letter-spacing: 1px;
+        }
+
+            #fuel-pct.low {
+                color: var(--danger-glow);
+                text-shadow: 0 0 6px var(--danger-glow);
+            }
+
+            #fuel-pct.empty {
+                color: #333;
             }
 
         /* BOTTOM */
@@ -1022,17 +1086,15 @@
                     <div class="rivet tl"></div><div class="rivet tr"></div>
                     <span class="aux-icon">🚀</span><span class="aux-lbl">Launcher</span>
                 </div>
-                <div class="aux-btn" id="cam-btn" ontouchstart="auxPress('cam')">
+                <div id="boost-btn">
                     <div class="rivet tl"></div><div class="rivet tr"></div>
-                    <span class="aux-icon">🎥</span><span class="aux-lbl">Cam</span>
+                    <span id="boost-icon">⚡</span>
+                    <span id="boost-lbl">Boost</span>
                 </div>
-                <div id="ammo-display">
-                    <span id="ammo-lbl">Ammo</span>
-                    <div id="ammo-pips">
-                        <div class="ap"></div><div class="ap"></div><div class="ap"></div>
-                        <div class="ap"></div><div class="ap"></div><div class="ap"></div>
-                        <div class="ap"></div><div class="ap"></div><div class="ap"></div>
-                    </div>
+                <div id="fuel-display">
+                    <span id="fuel-lbl">Fuel</span>
+                    <div id="fuel-bar-bg"><div id="fuel-bar-fill"></div></div>
+                    <span id="fuel-pct">100%</span>
                 </div>
             </div>
         </div>
@@ -1051,6 +1113,7 @@
         // ── AUDIO ─────────────────────────────────────────────────────────────────────
         const sndOnline = new Audio('Online.mp3');
         const sndNotConnected = new Audio('Not_connected.mp3');
+        const sndEmergency = new Audio('EmergencySpeed.mp3');
 
         function sndConnect() { try { sndOnline.currentTime = 0; sndOnline.play(); } catch (e) { } }
         function sndDisconnect() { try { sndNotConnected.currentTime = 0; sndNotConnected.play(); } catch (e) { } }
@@ -1088,6 +1151,12 @@
                 ws.onopen = () => { setOnline(true); setLog('connected — tank ready', 'ok'); sndConnect(); if (navigator.vibrate) navigator.vibrate([30, 20, 30, 20, 60]); startSend(); };
                 ws.onerror = () => setLog('failed — check ip & unity', 'err');
                 ws.onclose = e => { setOnline(false); setLog('disconnected: code ' + e.code, 'err'); sndDisconnect(); stopSend(); };
+                ws.onmessage = e => {
+                    if (e.data.startsWith('FUEL:')) {
+                        const val = parseFloat(e.data.split(':')[1]);
+                        if (!isNaN(val)) { fuelLevel = val; updateFuelUI(); }
+                    }
+                };
             } catch (e) { setLog('invalid url', 'err'); }
         }
         function send(m) { if (ws && ws.readyState === WebSocket.OPEN) ws.send(m); }
@@ -1186,6 +1255,80 @@
             } else if (type === 'cam') {
                 send('CAM_TOGGLE'); const b = $('cam-btn'); b.classList.add('active'); setTimeout(() => b.classList.remove('active'), 200);
             }
+        }
+
+        // ── BOOST BUTTON ──────────────────────────────────────────────────────────────
+        const boostBtn = $('boost-btn');
+        const boostIcon = $('boost-icon');
+        const boostLbl = $('boost-lbl');
+        const fuelFill = $('fuel-bar-fill');
+        const fuelPct = $('fuel-pct');
+
+        let boostHeld = false;
+        let boostPid = null;
+        let fuelLevel = 1.0; // 0.0 to 1.0 — updated from Unity via WS or estimated locally
+
+        boostBtn.addEventListener('pointerdown', e => {
+            if (fuelLevel <= 0) return;
+            boostPid = e.pointerId;
+            boostBtn.setPointerCapture(e.pointerId);
+            boostHeld = true;
+            boostBtn.classList.add('active');
+            boostIcon.textContent = '🔥';
+            send('BOOST_DOWN');
+            try { sndEmergency.currentTime = 0; sndEmergency.play(); } catch (e) { }
+            if (navigator.vibrate) navigator.vibrate([20, 10, 20]);
+        });
+
+        boostBtn.addEventListener('pointerup', e => {
+            if (e.pointerId !== boostPid) return;
+            boostHeld = false;
+            boostBtn.classList.remove('active');
+            boostIcon.textContent = '⚡';
+            send('BOOST_UP');
+            try { sndEmergency.pause(); sndEmergency.currentTime = 0; } catch (e) { }
+        });
+
+        boostBtn.addEventListener('pointercancel', e => {
+            boostHeld = false;
+            boostBtn.classList.remove('active');
+            boostIcon.textContent = '⚡';
+            send('BOOST_UP');
+            try { sndEmergency.pause(); sndEmergency.currentTime = 0; } catch (e) { }
+        });
+
+        // Simulate fuel locally so it feels responsive even before Unity sends data back
+        const DRAIN_RATE = 0.033; // per 50ms tick (~20% per second drain)
+        const CHARGE_RATE = 0.017; // per 50ms tick (~10% per second charge)
+
+        function updateFuelUI() {
+            const pct = Math.round(fuelLevel * 100);
+            fuelFill.style.width = pct + '%';
+            fuelPct.textContent = pct + '%';
+
+            if (fuelLevel <= 0) {
+                fuelFill.style.background = '#333';
+                fuelPct.className = 'empty';
+                boostBtn.classList.add('empty');
+                boostBtn.classList.remove('active');
+                boostIcon.textContent = '⚡';
+            } else if (fuelLevel < 0.25) {
+                fuelFill.style.background = 'linear-gradient(90deg,#cc2200,#ff4400)';
+                fuelPct.className = 'low';
+                boostBtn.classList.remove('empty');
+            } else {
+                fuelFill.style.background = 'linear-gradient(90deg,var(--amber),var(--rust-glow))';
+                fuelPct.className = '';
+                boostBtn.classList.remove('empty');
+            }
+        }
+
+        function startSend() {
+            stopSend();
+            sendInt = setInterval(() => {
+                if (rktMode) { send('MOVE:' + throttle.toFixed(2) + ':0.00'); send('AIM:' + aimX.toFixed(2) + ':' + aimY.toFixed(2)); }
+                else { send('MOVE:' + throttle.toFixed(2) + ':' + steering.toFixed(2)); }
+            }, 50);
         }
 
         // ── TRACK BUTTONS ─────────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
+
 public class LauncherModeController : MonoBehaviour
 {
     [Header("References")]
@@ -18,6 +18,10 @@ public class LauncherModeController : MonoBehaviour
     [Header("Remote Aim")]
     [Tooltip("How fast the crosshair moves across the screen from joystick input")]
     public float aimSensitivity = 300f;
+
+    [Header("Scope HUD")]
+    [Tooltip("Assign your LauncherHUD Canvas GameObject here")]
+    public GameObject scopeHUD;
 
     private MonoBehaviour _megaTankShooter;
     private Camera _mainCamera;
@@ -48,6 +52,10 @@ public class LauncherModeController : MonoBehaviour
 
         if (launcherPoint == null)
             Debug.LogWarning("[LauncherMode] LauncherPoint not assigned.");
+
+        // Hide scope HUD at start
+        if (scopeHUD != null)
+            scopeHUD.SetActive(false);
     }
 
     private void Update()
@@ -124,7 +132,7 @@ public class LauncherModeController : MonoBehaviour
         Rigidbody rb = rocket.GetComponent<Rigidbody>();
         if (rb != null) rb.velocity = direction * rocketSpeed;
 
-        Debug.Log($"[LauncherMode] Rocket fired toward {targetPoint} from {(screenPos == _remoteCrosshairPos ? "remote aim" : "mouse")}");
+        Debug.Log($"[LauncherMode] Rocket fired toward {targetPoint} from {(_useRemoteAim ? "remote aim" : "mouse")}");
     }
 
     private void EnterLauncherMode()
@@ -132,7 +140,6 @@ public class LauncherModeController : MonoBehaviour
         if (launcherPoint == null || _mainCamera == null) return;
         _inLauncherMode = true;
 
-        // Reset crosshair to center each time we enter
         _remoteCrosshairPos = new Vector2(Screen.width / 2f, Screen.height / 2f);
         _useRemoteAim = false;
 
@@ -149,6 +156,10 @@ public class LauncherModeController : MonoBehaviour
 
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Confined;
+
+        // Show scope HUD
+        if (scopeHUD != null)
+            scopeHUD.SetActive(true);
 
         Debug.Log("[LauncherMode] Entered. Crosshair reset to center.");
     }
@@ -169,6 +180,10 @@ public class LauncherModeController : MonoBehaviour
 
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
+
+        // Hide scope HUD
+        if (scopeHUD != null)
+            scopeHUD.SetActive(false);
 
         Debug.Log("[LauncherMode] Exited.");
     }
