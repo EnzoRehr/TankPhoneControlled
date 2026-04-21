@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Tank Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --armor: #1a1c1a;
+            --armor2: #22251f;
+            --armor3: #2c312a;
+            --steel: #3a4035;
+            --rust: #c8750a;
+            --rust-glow: #ff9e1b;
+            --danger: #cc2200;
+            --danger-glow: #ff3300;
+            --amber: #d4a017;
+            --green-ok: #3ddc84;
+            --text-dim: #5a6354;
+            --text-bright: #c8d4b8;
+            --rocket: #00c8ff;
+            --rocket-glow: #00eeff;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: var(--armor);
+            font-family: 'Share Tech Mono',monospace;
+            color: var(--text-bright);
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+            body::before {
+                content: '';
+                position: fixed;
+                inset: 0;
+                background-image: repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(0,0,0,0.18) 39px,rgba(0,0,0,0.18) 40px), repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(0,0,0,0.18) 39px,rgba(0,0,0,0.18) 40px);
+                pointer-events: none;
+                z-index: 0;
+            }
+
+            body::after {
+                content: '';
+                position: fixed;
+                inset: 0;
+                background: repeating-linear-gradient(to bottom,transparent 0px,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);
+                pointer-events: none;
+                z-index: 999;
+            }
+
+        #app {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            z-index: 1;
+        }
+
+        /* HUD */
+        #hud {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px 8px;
+            background: linear-gradient(180deg,#0d0f0c 0%,var(--armor) 100%);
+            border-bottom: 1px solid var(--steel);
+            position: relative;
+            transition: border-bottom-color 0.3s;
+        }
+
+            #hud::after {
+                content: '';
+                position: absolute;
+                bottom: -3px;
+                left: 0;
+                right: 0;
+                height: 2px;
+                background: linear-gradient(90deg,transparent,var(--rust),transparent);
+                transition: background 0.3s;
+            }
+
+            #hud.rkt::after {
+                background: linear-gradient(90deg,transparent,var(--rocket),transparent);
+            }
+
+        .hud-unit {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .hud-label {
+            font-size: 8px;
+            letter-spacing: 3px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        .hud-value {
+            font-family: 'Orbitron',sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--rust-glow);
+            letter-spacing: 1px;
+        }
+
+        #hud-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        #hud-title {
+            font-family: 'Orbitron',sans-serif;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: 4px;
+            color: var(--text-bright);
+            text-shadow: 0 0 12px rgba(200,117,10,0.5);
+            transition: color 0.3s,text-shadow 0.3s;
+        }
+
+            #hud-title.rkt {
+                color: var(--rocket-glow);
+                text-shadow: 0 0 12px rgba(0,200,255,0.7);
+            }
+
+        #mode-badge {
+            font-size: 8px;
+            letter-spacing: 2px;
+            color: var(--rocket-glow);
+            background: rgba(0,200,255,0.1);
+            border: 1px solid rgba(0,200,255,0.3);
+            padding: 1px 8px;
+            border-radius: 10px;
+            display: none;
+        }
+
+            #mode-badge.show {
+                display: block;
+            }
+
+        #status-pill {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 10px;
+            border: 1px solid var(--steel);
+            border-radius: 20px;
+            background: rgba(0,0,0,0.4);
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: var(--text-dim);
+        }
+
+        #status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--danger-glow);
+            box-shadow: 0 0 6px var(--danger-glow);
+            transition: all 0.3s;
+        }
+
+            #status-dot.on {
+                background: var(--green-ok);
+                box-shadow: 0 0 6px var(--green-ok);
+            }
+
+        #status-text.on {
+            color: var(--green-ok);
+        }
+
+        /* CONTROLS ROW */
+        #controls {
+            flex: 1 1 auto;
+            display: flex;
+            align-items: stretch;
+            padding: 10px 8px;
+            gap: 8px;
+            min-height: 0;
+        }
+
+        .panel-label {
+            font-size: 9px;
+            letter-spacing: 3px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        /* THROTTLE */
+        #left-panel {
+            flex: 0 0 78px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        #throttle-housing {
+            flex: 1;
+            width: 64px;
+            background: #111411;
+            border: 1px solid var(--steel);
+            border-radius: 8px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
+        }
+
+        .rivet {
+            position: absolute;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%,#555,#1a1a1a);
+            border: 1px solid #333;
+        }
+
+            .rivet.tl {
+                top: 6px;
+                left: 6px
+            }
+
+            .rivet.tr {
+                top: 6px;
+                right: 6px
+            }
+
+            .rivet.bl {
+                bottom: 6px;
+                left: 6px
+            }
+
+            .rivet.br {
+                bottom: 6px;
+                right: 6px
+            }
+
+        #lever-track {
+            width: 10px;
+            height: calc(100% - 60px);
+            background: #0a0c09;
+            border-radius: 5px;
+            border: 1px solid #333;
+            position: relative;
+        }
+
+        .tn {
+            position: absolute;
+            width: 20px;
+            height: 1px;
+            background: var(--steel);
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+            .tn.c {
+                background: var(--rust);
+                width: 26px;
+                height: 2px;
+            }
+
+        #lever-knob {
+            width: 52px;
+            height: 38px;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg,#4a5045,#2a2f28 40%,#1e221c);
+            border: 1px solid #555;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.7);
+            z-index: 10;
+            touch-action: none;
+            cursor: grab;
+        }
+
+            #lever-knob::before {
+                content: '';
+                width: 28px;
+                height: 3px;
+                background: var(--steel);
+                border-radius: 2px;
+            }
+
+            #lever-knob::after {
+                content: '';
+                width: 20px;
+                height: 3px;
+                background: var(--steel);
+                border-radius: 2px;
+            }
+
+            #lever-knob.fwd {
+                border-color: var(--green-ok);
+                box-shadow: 0 0 10px rgba(61,220,132,0.3);
+            }
+
+            #lever-knob.rev {
+                border-color: #e05000;
+                box-shadow: 0 0 10px rgba(224,80,0,0.3);
+            }
+
+        #spd-bg {
+            width: 54px;
+            height: 6px;
+            background: #0a0c09;
+            border: 1px solid #333;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        #spd-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--green-ok);
+            border-radius: 3px;
+            transition: width 0.05s,background 0.1s;
+        }
+
+        #thr-out {
+            font-family: 'Orbitron',sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--rust-glow);
+            letter-spacing: 1px;
+            min-width: 54px;
+            text-align: center;
+        }
+
+            #thr-out.fwd {
+                color: var(--green-ok);
+            }
+
+            #thr-out.rev {
+                color: #ff6030;
+            }
+
+        /* TRACK BUTTONS */
+        #track-panel {
+            flex: 0 0 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .track-btn {
+            width: 62px;
+            height: 62px;
+            border-radius: 8px;
+            background: linear-gradient(135deg,#252820,#141612);
+            border: 1px solid var(--steel);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            cursor: pointer;
+            touch-action: none;
+            position: relative;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 2px 6px rgba(0,0,0,0.5);
+            transition: all 0.08s;
+        }
+
+            .track-btn .rivet {
+                width: 5px;
+                height: 5px;
+            }
+
+        .track-btn-icon {
+            font-size: 18px;
+        }
+
+        .track-btn-lbl {
+            font-size: 7px;
+            letter-spacing: 2px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        .track-btn.pressed {
+            transform: scale(0.93);
+            border-color: var(--amber);
+            background: linear-gradient(135deg,#2a2510,#181408);
+            box-shadow: 0 0 10px rgba(212,160,23,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
+        }
+
+            .track-btn.pressed .track-btn-lbl {
+                color: var(--amber);
+            }
+
+        /* FIRE PANEL — left of steering */
+        #fire-panel {
+            flex: 0 0 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        #fire-btn {
+            width: 94px;
+            height: 94px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 38% 30%,#6b1010,#2a0000);
+            border: 3px solid #8a1010;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+            touch-action: none;
+            position: relative;
+            transition: all 0.08s;
+            box-shadow: 0 0 0 6px rgba(139,16,16,0.15),0 0 20px rgba(139,16,16,0.2),inset 0 -4px 8px rgba(0,0,0,0.5);
+        }
+
+            #fire-btn::before {
+                content: '';
+                position: absolute;
+                inset: 6px;
+                border-radius: 50%;
+                border: 1px solid rgba(255,80,80,0.15);
+            }
+
+        #fire-icon {
+            font-size: 26px;
+            filter: drop-shadow(0 0 4px rgba(255,80,50,0.6));
+            transition: transform 0.08s;
+        }
+
+        #fire-word {
+            font-family: 'Orbitron',sans-serif;
+            font-size: 9px;
+            font-weight: 900;
+            letter-spacing: 3px;
+            color: #ff4040;
+            text-shadow: 0 0 8px rgba(255,64,64,0.6);
+        }
+
+        #fire-btn.firing {
+            transform: scale(0.91);
+            background: radial-gradient(circle at 38% 30%,#ff3030,#8a0000);
+            border-color: #ff4040;
+            box-shadow: 0 0 0 6px rgba(255,64,64,0.25),0 0 40px rgba(255,64,64,0.5);
+        }
+
+            #fire-btn.firing #fire-icon {
+                transform: scale(1.2);
+            }
+
+        #fire-btn.rkt {
+            background: radial-gradient(circle at 38% 30%,#004060,#001020);
+            border-color: var(--rocket);
+            box-shadow: 0 0 0 6px rgba(0,200,255,0.1),0 0 20px rgba(0,200,255,0.2);
+        }
+
+            #fire-btn.rkt #fire-word {
+                color: var(--rocket-glow);
+                text-shadow: 0 0 8px rgba(0,200,255,0.6);
+            }
+
+            #fire-btn.rkt.firing {
+                background: radial-gradient(circle at 38% 30%,#0080c0,#004070);
+                border-color: var(--rocket-glow);
+                box-shadow: 0 0 0 6px rgba(0,200,255,0.3),0 0 40px rgba(0,200,255,0.5);
+            }
+
+        #fire-status {
+            font-size: 9px;
+            letter-spacing: 3px;
+            color: #883020;
+            text-transform: uppercase;
+            transition: color 0.1s;
+        }
+
+            #fire-status.firing {
+                color: var(--danger-glow);
+                text-shadow: 0 0 8px var(--danger-glow);
+            }
+
+            #fire-status.rkt-ready {
+                color: var(--rocket);
+            }
+
+        /* STEERING / AIM PAD */
+        #center-panel {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        #steer-pad {
+            width: 148px;
+            height: 148px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 50% 50%,#1c201a,#0e100d 70%);
+            border: 1px solid var(--steel);
+            position: relative;
+            cursor: crosshair;
+            touch-action: none;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
+            transition: border-color 0.3s,box-shadow 0.3s;
+        }
+
+            #steer-pad.rkt {
+                border-color: var(--rocket);
+                box-shadow: inset 0 0 30px rgba(0,0,0,0.8),0 0 14px rgba(0,200,255,0.25);
+            }
+
+        .sr {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%,-50%);
+        }
+
+            .sr.r1 {
+                width: 120px;
+                height: 120px;
+                border-color: rgba(58,64,53,0.4);
+            }
+
+            .sr.r2 {
+                width: 82px;
+                height: 82px;
+                border-color: rgba(58,64,53,0.3);
+            }
+
+            .sr.r3 {
+                width: 44px;
+                height: 44px;
+                border-color: rgba(58,64,53,0.2);
+            }
+
+        #steer-pad.rkt .sr.r1 {
+            border-color: rgba(0,200,255,0.2);
+        }
+
+        #steer-pad.rkt .sr.r2 {
+            border-color: rgba(0,200,255,0.15);
+        }
+
+        #steer-pad.rkt .sr.r3 {
+            border-color: rgba(0,200,255,0.25);
+        }
+
+        .sl {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%,-50%);
+        }
+
+            .sl.h {
+                width: 128px;
+                height: 1px;
+                background: rgba(58,64,53,0.25);
+            }
+
+            .sl.v {
+                width: 1px;
+                height: 128px;
+                background: rgba(58,64,53,0.25);
+            }
+
+        #steer-pad.rkt .sl {
+            background: rgba(0,200,255,0.2);
+        }
+
+        #ch {
+            display: none;
+            pointer-events: none;
+        }
+
+        #steer-pad.rkt #ch {
+            display: block;
+        }
+
+        .chl {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+        }
+
+            .chl.h {
+                width: 22px;
+                height: 1px;
+                background: rgba(0,200,255,0.7);
+                transform: translate(-50%,-50%);
+            }
+
+            .chl.v {
+                width: 1px;
+                height: 22px;
+                background: rgba(0,200,255,0.7);
+                transform: translate(-50%,-50%);
+            }
+
+        #steer-thumb {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 38% 32%,#5a6050,#2a2f28);
+            border: 2px solid var(--steel);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%,-50%);
+            box-shadow: 0 0 10px rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color 0.15s;
+        }
+
+            #steer-thumb::after {
+                content: '';
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                background: var(--armor3);
+                border: 1px solid #444;
+            }
+
+            #steer-thumb.act {
+                border-color: var(--rust);
+                box-shadow: 0 0 14px rgba(200,117,10,0.5);
+            }
+
+            #steer-thumb.rkt-act {
+                border-color: var(--rocket);
+                box-shadow: 0 0 14px rgba(0,200,255,0.5);
+            }
+
+        #steer-out {
+            font-size: 10px;
+            color: var(--text-dim);
+            letter-spacing: 2px;
+            min-height: 14px;
+            transition: color 0.3s;
+        }
+
+            #steer-out.rkt {
+                color: var(--rocket);
+            }
+
+        #pad-lbl {
+            font-size: 9px;
+            letter-spacing: 3px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            transition: color 0.3s;
+        }
+
+            #pad-lbl.rkt {
+                color: var(--rocket-glow);
+            }
+
+        /* RIGHT PANEL */
+        #right-panel {
+            flex: 0 0 78px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .aux-btn {
+            width: 66px;
+            height: 62px;
+            border-radius: 8px;
+            background: linear-gradient(135deg,#2c312a,#1a1c1a);
+            border: 1px solid var(--steel);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            cursor: pointer;
+            touch-action: none;
+            transition: all 0.1s;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+            position: relative;
+        }
+
+            .aux-btn .rivet {
+                width: 5px;
+                height: 5px;
+            }
+
+        .aux-icon {
+            font-size: 20px;
+        }
+
+        .aux-lbl {
+            font-size: 7px;
+            letter-spacing: 2px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        .aux-btn:active {
+            transform: scale(0.93);
+        }
+
+        .aux-btn.tog {
+            background: linear-gradient(135deg,#003040,#001520);
+            border-color: var(--rocket);
+            box-shadow: 0 0 10px rgba(0,200,255,0.2);
+        }
+
+            .aux-btn.tog .aux-lbl {
+                color: var(--rocket-glow);
+            }
+
+        #ammo-display {
+            width: 66px;
+            background: #0a0c09;
+            border: 1px solid var(--steel);
+            border-radius: 6px;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        #ammo-lbl {
+            font-size: 7px;
+            letter-spacing: 2px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        #ammo-pips {
+            display: grid;
+            grid-template-columns: repeat(3,1fr);
+            gap: 3px;
+            width: 100%;
+        }
+
+        .ap {
+            height: 8px;
+            border-radius: 2px;
+            background: var(--rust);
+            box-shadow: 0 0 4px rgba(200,117,10,0.4);
+            transition: all 0.15s;
+        }
+
+            .ap.spent {
+                background: #1a1c1a;
+                border: 1px solid #333;
+                box-shadow: none;
+            }
+
+        /* BOTTOM */
+        #bottom-bar {
+            flex: 0 0 auto;
+            padding: 8px 12px 12px;
+            background: linear-gradient(0deg,#0d0f0c,var(--armor));
+            border-top: 1px solid var(--steel);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            position: relative;
+        }
+
+            #bottom-bar::before {
+                content: '';
+                position: absolute;
+                top: -3px;
+                left: 0;
+                right: 0;
+                height: 2px;
+                background: linear-gradient(90deg,transparent,var(--rust),transparent);
+            }
+
+        #conn-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        #ip-input {
+            flex: 1;
+            background: #0a0c09;
+            border: 1px solid var(--steel);
+            color: var(--rust-glow);
+            padding: 7px 10px;
+            border-radius: 4px;
+            font-family: 'Share Tech Mono',monospace;
+            font-size: 12px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+            #ip-input:focus {
+                border-color: var(--rust);
+            }
+
+        #conn-btn {
+            padding: 7px 14px;
+            background: linear-gradient(135deg,#2c2010,#1a1208);
+            border: 1px solid var(--rust);
+            color: var(--rust-glow);
+            font-family: 'Orbitron',sans-serif;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+            text-transform: uppercase;
+        }
+
+            #conn-btn:active {
+                transform: scale(0.96);
+            }
+
+            #conn-btn.on {
+                border-color: var(--green-ok);
+                color: var(--green-ok);
+                background: linear-gradient(135deg,#0d2010,#081208);
+            }
+
+        #log {
+            font-size: 9px;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+            text-align: center;
+            min-height: 12px;
+        }
+
+            #log.ok {
+                color: var(--green-ok);
+            }
+
+            #log.err {
+                color: var(--danger-glow);
+            }
+
+        .cd {
+            position: fixed;
+            width: 24px;
+            height: 24px;
+            border-color: var(--rust);
+            border-style: solid;
+            opacity: 0.4;
+            z-index: 2;
+        }
+
+            .cd.tl {
+                top: 6px;
+                left: 6px;
+                border-width: 2px 0 0 2px;
+            }
+
+            .cd.tr {
+                top: 6px;
+                right: 6px;
+                border-width: 2px 2px 0 0;
+            }
+
+            .cd.bl {
+                bottom: 6px;
+                left: 6px;
+                border-width: 0 0 2px 2px;
+            }
+
+            .cd.br {
+                bottom: 6px;
+                right: 6px;
+                border-width: 0 2px 2px 0;
+            }
+
+        #ow {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: var(--armor);
+            z-index: 1000;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+            #ow span {
+                font-size: 48px;
+            }
+
+            #ow p {
+                font-family: 'Orbitron',sans-serif;
+                font-size: 11px;
+                letter-spacing: 3px;
+                color: var(--text-dim);
+                text-align: center;
+            }
+
+        @media(orientation:portrait) {
+            #ow {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="cd tl"></div><div class="cd tr"></div><div class="cd bl"></div><div class="cd br"></div>
+    <div id="ow"><span>📱</span><p>ROTATE DEVICE<br>TO LANDSCAPE</p></div>
+
+    <div id="app">
+        <!-- HUD -->
+        <div id="hud">
+            <div class="hud-unit"><span class="hud-label">Speed</span><span class="hud-value" id="hud-spd">000</span></div>
+            <div id="hud-center">
+                <div id="hud-title">MK-IV CONTROL</div>
+                <div id="mode-badge">ROCKET MODE</div>
+                <div id="status-pill"><div id="status-dot"></div><span id="status-text">OFFLINE</span></div>
+            </div>
+            <div class="hud-unit" style="align-items:flex-end">
+                <span class="hud-label" id="hud-sl">Steer</span>
+                <span class="hud-value" id="hud-steer">CTR</span>
+            </div>
+        </div>
+
+        <!-- CONTROLS -->
+        <div id="controls">
+            <!-- Throttle -->
+            <div id="left-panel">
+                <span class="panel-label">Throttle</span>
+                <div id="throttle-housing">
+                    <div class="rivet tl"></div><div class="rivet tr"></div><div class="rivet bl"></div><div class="rivet br"></div>
+                    <div id="lever-track">
+                        <div class="tn" style="top:5%"></div><div class="tn" style="top:25%"></div>
+                        <div class="tn c" style="top:50%"></div>
+                        <div class="tn" style="top:75%"></div><div class="tn" style="top:95%"></div>
+                        <div id="lever-knob"></div>
+                    </div>
+                </div>
+                <div id="spd-bg"><div id="spd-fill"></div></div>
+                <span id="thr-out">IDLE</span>
+            </div>
+
+            <!-- Track Buttons -->
+            <div id="track-panel">
+                <span class="panel-label">Tracks</span>
+                <div class="track-btn" id="track-left">
+                    <div class="rivet tl"></div><div class="rivet tr"></div>
+                    <span class="track-btn-icon">⬅</span>
+                    <span class="track-btn-lbl">Left</span>
+                </div>
+                <div class="track-btn" id="track-right">
+                    <div class="rivet tl"></div><div class="rivet tr"></div>
+                    <span class="track-btn-icon">➡</span>
+                    <span class="track-btn-lbl">Right</span>
+                </div>
+            </div>
+
+            <!-- Fire — left of steering -->
+            <div id="fire-panel">
+                <span class="panel-label" id="fire-lbl">Fire</span>
+                <div id="fire-btn">
+                    <span id="fire-icon">💥</span>
+                    <span id="fire-word">FIRE</span>
+                </div>
+                <span id="fire-status">READY</span>
+            </div>
+
+            <!-- Steering / Aim -->
+            <div id="center-panel">
+                <span id="pad-lbl" class="panel-label">Steering</span>
+                <div id="steer-pad">
+                    <div class="sl h"></div><div class="sl v"></div>
+                    <div class="sr r1"></div><div class="sr r2"></div><div class="sr r3"></div>
+                    <div id="ch"><div class="chl h"></div><div class="chl v"></div></div>
+                    <div id="steer-thumb"></div>
+                </div>
+                <span id="steer-out">CENTERED</span>
+            </div>
+
+            <!-- Right aux -->
+            <div id="right-panel">
+                <span class="panel-label">Systems</span>
+                <div class="aux-btn" id="launcher-btn" ontouchstart="auxPress('launcher')">
+                    <div class="rivet tl"></div><div class="rivet tr"></div>
+                    <span class="aux-icon">🚀</span><span class="aux-lbl">Launcher</span>
+                </div>
+                <div class="aux-btn" id="cam-btn" ontouchstart="auxPress('cam')">
+                    <div class="rivet tl"></div><div class="rivet tr"></div>
+                    <span class="aux-icon">🎥</span><span class="aux-lbl">Cam</span>
+                </div>
+                <div id="ammo-display">
+                    <span id="ammo-lbl">Ammo</span>
+                    <div id="ammo-pips">
+                        <div class="ap"></div><div class="ap"></div><div class="ap"></div>
+                        <div class="ap"></div><div class="ap"></div><div class="ap"></div>
+                        <div class="ap"></div><div class="ap"></div><div class="ap"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom bar -->
+        <div id="bottom-bar">
+            <div id="conn-row">
+                <input id="ip-input" type="text" value="ws://192.168.100.25:7777/tank" placeholder="ws://PC-IP:7777/tank" autocomplete="off" autocorrect="off" spellcheck="false" />
+                <button id="conn-btn" onclick="toggleWS()">CONNECT</button>
+            </div>
+            <div id="log">enter your pc's local ip address above</div>
+        </div>
+    </div>
+
+    <script>
+        // ── AUDIO ─────────────────────────────────────────────────────────────────────
+        const sndOnline = new Audio('Online.mp3');
+        const sndNotConnected = new Audio('Not_connected.mp3');
+
+        function sndConnect() { try { sndOnline.currentTime = 0; sndOnline.play(); } catch (e) { } }
+        function sndDisconnect() { try { sndNotConnected.currentTime = 0; sndNotConnected.play(); } catch (e) { } }
+        function sndFire(rocket) { }
+        function sndLauncher(on) { }
+        function getACtx() { }
+
+        // ── STATE ─────────────────────────────────────────────────────────────────────
+        let ws = null, throttle = 0, steering = 0, aimX = 0, aimY = 0;
+        let fireHeld = false, rktMode = false, ammo = 9, sendInt = null;
+
+        // ── REFS ──────────────────────────────────────────────────────────────────────
+        const $ = id => document.getElementById(id);
+        const lknob = $('lever-knob'), ltrack = $('lever-track'), thrOut = $('thr-out'), spdFill = $('spd-fill'), hudSpd = $('hud-spd');
+        const sPad = $('steer-pad'), sThumb = $('steer-thumb'), sOut = $('steer-out'), hudSteer = $('hud-steer'), hudSl = $('hud-sl');
+        const fBtn = $('fire-btn'), fIcon = $('fire-icon'), fWord = $('fire-word'), fStatus = $('fire-status'), fLbl = $('fire-lbl');
+        const padLbl = $('pad-lbl'), sDot = $('status-dot'), sTxt = $('status-text'), cBtn = $('conn-btn'), log = $('log');
+        const hudTitle = $('hud-title'), badge = $('mode-badge'), hud = $('hud');
+
+        // ── WS ────────────────────────────────────────────────────────────────────────
+        function setLog(m, t) { log.textContent = m; log.className = t || ''; }
+        function setOnline(v) {
+            sDot.className = v ? 'on' : ''; sTxt.className = v ? 'on' : ''; sTxt.textContent = v ? 'ONLINE' : 'OFFLINE';
+            cBtn.textContent = v ? 'DISCONNECT' : 'CONNECT'; cBtn.className = v ? 'on' : '';
+        }
+        function toggleWS() {
+            if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) { ws.close(); return; }
+            let url = $('ip-input').value.trim();
+            if (url.startsWith('http://')) url = url.replace('http://', 'ws://');
+            if (url.startsWith('https://')) url = url.replace('https://', 'wss://');
+            if (!url.startsWith('ws://') && !url.startsWith('wss://')) url = 'ws://' + url;
+            $('ip-input').value = url;
+            try {
+                ws = new WebSocket(url); setLog('connecting...', '');
+                ws.onopen = () => { setOnline(true); setLog('connected — tank ready', 'ok'); sndConnect(); if (navigator.vibrate) navigator.vibrate([30, 20, 30, 20, 60]); startSend(); };
+                ws.onerror = () => setLog('failed — check ip & unity', 'err');
+                ws.onclose = e => { setOnline(false); setLog('disconnected: code ' + e.code, 'err'); sndDisconnect(); stopSend(); };
+            } catch (e) { setLog('invalid url', 'err'); }
+        }
+        function send(m) { if (ws && ws.readyState === WebSocket.OPEN) ws.send(m); }
+        function startSend() {
+            stopSend();
+            sendInt = setInterval(() => {
+                if (rktMode) { send('MOVE:' + throttle.toFixed(2) + ':0.00'); send('AIM:' + aimX.toFixed(2) + ':' + aimY.toFixed(2)); }
+                else { send('MOVE:' + throttle.toFixed(2) + ':' + steering.toFixed(2)); }
+            }, 50);
+        }
+        function stopSend() { if (sendInt) { clearInterval(sendInt); sendInt = null; } }
+
+        // ── THROTTLE ──────────────────────────────────────────────────────────────────
+        let lDrag = false, lPid = null;
+        function lRange() { const r = ltrack.getBoundingClientRect(), kh = lknob.offsetHeight; return { top: r.top + kh / 2, range: r.height - kh }; }
+        function setLever(y) { const { top, range } = lRange(); let rel = Math.max(0, Math.min(1, (y - top) / range)); throttle = parseFloat((1 - rel * 2).toFixed(2)); updateLever(); }
+        function updateLever() {
+            const { range } = lRange(); const pct = (1 - throttle) / 2; lknob.style.top = (pct * range) + 'px';
+            const abs = Math.abs(throttle), ps = Math.round(abs * 100);
+            spdFill.style.width = (abs * 100) + '%'; spdFill.style.background = throttle > 0 ? 'var(--green-ok)' : throttle < 0 ? '#e05000' : 'var(--steel)';
+            hudSpd.textContent = String(ps).padStart(3, '0');
+            if (throttle > 0.05) { thrOut.textContent = '+' + ps + '% FWD'; thrOut.className = 'fwd'; lknob.className = 'fwd'; }
+            else if (throttle < -0.05) { thrOut.textContent = ps + '% REV'; thrOut.className = 'rev'; lknob.className = 'rev'; }
+            else { thrOut.textContent = 'IDLE'; thrOut.className = ''; lknob.className = ''; }
+        }
+        lknob.addEventListener('pointerdown', e => { lDrag = true; lPid = e.pointerId; lknob.setPointerCapture(e.pointerId); setLever(e.clientY); });
+        document.addEventListener('pointermove', e => { if (!lDrag || e.pointerId !== lPid) return; setLever(e.clientY); });
+        document.addEventListener('pointerup', e => { if (!lDrag || e.pointerId !== lPid) return; lDrag = false; throttle = 0; updateLever(); });
+
+        // ── STEERING / AIM PAD ────────────────────────────────────────────────────────
+        let sDrag = false, sPid = null;
+        const SR = 52;
+        function updatePad(cx, cy) {
+            const r = sPad.getBoundingClientRect(), px = r.left + r.width / 2, py = r.top + r.height / 2;
+            let dx = cx - px, dy = cy - py, dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist > SR) { dx = dx / dist * SR; dy = dy / dist * SR; }
+            const tr = sThumb.offsetWidth / 2;
+            sThumb.style.left = (r.width / 2 + dx - tr) + 'px'; sThumb.style.top = (r.height / 2 + dy - tr) + 'px'; sThumb.style.transform = 'none';
+            if (rktMode) {
+                aimX = parseFloat((dx / SR).toFixed(2)); aimY = parseFloat((-dy / SR).toFixed(2));
+                const ap = Math.round(Math.max(Math.abs(aimX), Math.abs(aimY)) * 100);
+                sOut.textContent = ap < 5 ? 'LOCKED' : 'AIM ' + (aimX > 0.05 ? '→' : aimX < -0.05 ? '←' : '') + (aimY > 0.05 ? '↑' : aimY < -0.05 ? '↓' : '');
+                hudSteer.textContent = ap < 5 ? 'LCK' : Math.round(aimX * 100) + ',' + Math.round(aimY * 100);
+            } else {
+                steering = parseFloat((dx / SR).toFixed(2));
+                const sp = Math.round(Math.abs(steering) * 100);
+                sOut.textContent = steering < -0.05 ? '← ' + sp + '%' : steering > 0.05 ? sp + '% →' : 'CENTERED';
+                hudSteer.textContent = steering < -0.1 ? 'LFT' : steering > 0.1 ? 'RGT' : 'CTR';
+            }
+        }
+        function resetPad() {
+            sThumb.style.cssText = 'left:50%;top:50%;transform:translate(-50%,-50%)'; sThumb.className = '';
+            if (rktMode) { aimX = 0; aimY = 0; sOut.textContent = 'LOCKED'; hudSteer.textContent = 'LCK'; }
+            else { steering = 0; sOut.textContent = 'CENTERED'; hudSteer.textContent = 'CTR'; }
+        }
+        sPad.addEventListener('pointerdown', e => { sDrag = true; sPid = e.pointerId; sPad.setPointerCapture(e.pointerId); sThumb.className = rktMode ? 'rkt-act' : 'act'; updatePad(e.clientX, e.clientY); });
+        sPad.addEventListener('pointermove', e => { if (!sDrag || e.pointerId !== sPid) return; updatePad(e.clientX, e.clientY); });
+        sPad.addEventListener('pointerup', e => { if (e.pointerId !== sPid) return; sDrag = false; resetPad(); });
+
+        // ── FIRE ──────────────────────────────────────────────────────────────────────
+        let fPid = null;
+        fBtn.addEventListener('pointerdown', e => {
+            fPid = e.pointerId; fBtn.setPointerCapture(e.pointerId);
+            fBtn.classList.add('firing'); fStatus.textContent = rktMode ? 'LAUNCHING' : 'FIRING'; fStatus.classList.add('firing');
+            fireHeld = true; send('FIRE_DOWN'); sndFire(rktMode);
+            if (navigator.vibrate) navigator.vibrate(rktMode ? [60, 20, 40] : 35);
+            if (ammo > 0) { ammo--; updatePips(); }
+        });
+        fBtn.addEventListener('pointerup', e => {
+            if (e.pointerId !== fPid) return;
+            fBtn.classList.remove('firing'); fStatus.textContent = rktMode ? 'ARMED' : 'READY';
+            fStatus.className = rktMode ? 'rkt-ready' : ''; fireHeld = false; send('FIRE_UP');
+        });
+
+        function updatePips() { document.querySelectorAll('.ap').forEach((p, i) => p.classList.toggle('spent', i >= ammo)); }
+
+        // ── AUX ───────────────────────────────────────────────────────────────────────
+        function auxPress(type) {
+            if (navigator.vibrate) navigator.vibrate(20);
+            if (type === 'launcher') {
+                rktMode = !rktMode; sndLauncher(rktMode);
+                $('launcher-btn').classList.toggle('tog', rktMode);
+                // Pad UI
+                sPad.classList.toggle('rkt', rktMode); sOut.classList.toggle('rkt', rktMode);
+                padLbl.textContent = rktMode ? 'Aim Crosshair' : 'Steering'; padLbl.classList.toggle('rkt', rktMode);
+                hudSl.textContent = rktMode ? 'Aim' : 'Steer';
+                // HUD
+                hudTitle.classList.toggle('rkt', rktMode); badge.classList.toggle('show', rktMode); hud.classList.toggle('rkt', rktMode);
+                // Fire btn
+                fBtn.classList.toggle('rkt', rktMode);
+                fIcon.textContent = rktMode ? '🚀' : '💥'; fWord.textContent = rktMode ? 'LAUNCH' : 'FIRE';
+                fStatus.textContent = rktMode ? 'ARMED' : 'READY'; fStatus.className = rktMode ? 'rkt-ready' : '';
+                fLbl.textContent = rktMode ? 'Launch' : 'Fire';
+                send('LAUNCHER_TOGGLE'); setLog(rktMode ? 'rocket mode — use pad to aim' : 'cannon mode', rktMode ? 'ok' : '');
+                resetPad();
+            } else if (type === 'cam') {
+                send('CAM_TOGGLE'); const b = $('cam-btn'); b.classList.add('active'); setTimeout(() => b.classList.remove('active'), 200);
+            }
+        }
+
+        // ── TRACK BUTTONS ─────────────────────────────────────────────────────────────
+        let trackLeft = false, trackRight = false;
+
+        function setupTrackBtn(id, msgDown, msgUp) {
+            const btn = $(id);
+            btn.addEventListener('pointerdown', e => {
+                btn.setPointerCapture(e.pointerId);
+                btn.classList.add('pressed');
+                send(msgDown);
+                if (navigator.vibrate) navigator.vibrate(15);
+            });
+            btn.addEventListener('pointerup', () => {
+                btn.classList.remove('pressed');
+                send(msgUp);
+            });
+            btn.addEventListener('pointercancel', () => {
+                btn.classList.remove('pressed');
+                send(msgUp);
+            });
+        }
+
+        setupTrackBtn('track-left', 'TRACK_LEFT_DOWN', 'TRACK_LEFT_UP');
+        setupTrackBtn('track-right', 'TRACK_RIGHT_DOWN', 'TRACK_RIGHT_UP');
+
+        // ── INIT ──────────────────────────────────────────────────────────────────────
+        updateLever(); resetPad(); updatePips();
+        document.addEventListener('contextmenu', e => e.preventDefault());
+    </script>
+</body>
+</html>
