@@ -45,12 +45,10 @@ public class TurretRotation : MonoBehaviour
         if (mainCamera == null) return;
 
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-        Plane groundPlane = new Plane(Vector3.up, transform.position);
 
-        if (groundPlane.Raycast(ray, out float distance))
+        if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
         {
-            Vector3 targetPoint = ray.GetPoint(distance);
-            Vector3 direction = targetPoint - transform.position;
+            Vector3 direction = hit.point - transform.position;
             direction.y = 0f;
 
             if (direction.sqrMagnitude > 0.001f)

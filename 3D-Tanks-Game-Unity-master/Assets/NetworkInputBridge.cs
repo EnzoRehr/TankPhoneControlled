@@ -86,6 +86,12 @@ public class NetworkInputBridge : MonoBehaviour
         try { _server.WebSocketServices["/tank"].Sessions.Broadcast(msg); }
         catch { }
     }
+    public static void BroadcastWaveStart()
+    {
+        if (_server == null || !_server.IsListening) return;
+        try { _server.WebSocketServices["/tank"].Sessions.Broadcast("WAVE_START"); }
+        catch { }
+    }
 
     void ParseMessage(string msg)
     {

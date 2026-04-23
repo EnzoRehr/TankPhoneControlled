@@ -1155,7 +1155,13 @@
                     if (e.data.startsWith('FUEL:')) {
                         const val = parseFloat(e.data.split(':')[1]);
                         if (!isNaN(val)) { fuelLevel = val; updateFuelUI(); }
+                    } else if (e.data === 'WAVE_START') {
+                        try {
+                            const sndWave = new Audio('CratureAttack.mp3');
+                            sndWave.play();
+                        } catch (e) { }
                     }
+                };
                 };
             } catch (e) { setLog('invalid url', 'err'); }
         }
